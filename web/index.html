@@ -1,0 +1,414 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ServicePilot V0.3 Demo</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --navy: #132238;
+      --blue: #246bfd;
+      --blue-soft: #eaf1ff;
+      --green: #147d64;
+      --amber: #a45f06;
+      --red: #b53b45;
+      --ink: #1d2939;
+      --muted: #667085;
+      --line: #d8e0ea;
+      --surface: #ffffff;
+      --canvas: #f4f7fb;
+      --shadow: 0 18px 45px rgba(28, 45, 73, .09);
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; color: var(--ink); background: var(--canvas); }
+    button, textarea, select { font: inherit; }
+    .topbar { background: var(--navy); color: white; }
+    .topbar-inner { max-width: 1180px; margin: auto; padding: 30px 24px 28px; display: flex; align-items: end; justify-content: space-between; gap: 24px; }
+    .brand { margin: 0 0 8px; font-size: clamp(28px, 4vw, 42px); letter-spacing: -.03em; }
+    .subtitle { margin: 0; color: #cbd7e8; font-size: 17px; }
+    .version { flex: none; padding: 8px 12px; border: 1px solid #51627a; border-radius: 999px; color: #dce7f5; font-size: 13px; font-weight: 700; }
+    .notice { background: #fff6df; color: #65420b; border-bottom: 1px solid #ead8ad; }
+    .notice p { max-width: 1180px; margin: auto; padding: 12px 24px; font-size: 14px; font-weight: 650; }
+    .layout { max-width: 1180px; margin: 28px auto 48px; padding: 0 24px; display: grid; grid-template-columns: minmax(0, .92fr) minmax(0, 1.35fr); gap: 22px; align-items: start; }
+    .card { background: var(--surface); border: 1px solid #e3e9f1; border-radius: 18px; box-shadow: var(--shadow); }
+    .panel { padding: 24px; }
+    .panel h2 { margin: 0 0 6px; font-size: 20px; }
+    .eyebrow { margin: 0 0 8px; color: var(--blue); font-size: 12px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+    .helper { margin: 0 0 18px; color: var(--muted); font-size: 14px; line-height: 1.65; }
+    label { display: block; margin-bottom: 7px; font-size: 14px; font-weight: 700; }
+    textarea, select { width: 100%; border: 1px solid #bcc8d8; border-radius: 10px; background: white; color: var(--ink); outline: none; }
+    textarea { min-height: 190px; resize: vertical; padding: 13px 14px; line-height: 1.6; }
+    select { height: 44px; padding: 0 12px; }
+    textarea:focus, select:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(36,107,253,.12); }
+    .field { margin-bottom: 18px; }
+    .mode-note { margin: 7px 0 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
+    .examples { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+    .example { border: 1px solid #cbd5e1; border-radius: 999px; background: #f8fafc; color: #344054; padding: 7px 10px; cursor: pointer; font-size: 12px; }
+    .example:hover { border-color: var(--blue); color: var(--blue); }
+    .actions { display: flex; gap: 10px; margin-top: 20px; }
+    .button { border: 0; border-radius: 10px; padding: 11px 16px; cursor: pointer; font-weight: 750; }
+    .button:disabled { cursor: not-allowed; opacity: .55; }
+    .primary { flex: 1; background: var(--blue); color: white; }
+    .secondary { background: #edf1f6; color: #344054; }
+    .state { min-height: 440px; }
+    .state-head { display: flex; justify-content: space-between; align-items: start; gap: 12px; margin-bottom: 18px; }
+    .status { padding: 6px 10px; border-radius: 999px; background: #eef2f6; color: #475467; font-size: 12px; font-weight: 750; }
+    .status.loading { background: var(--blue-soft); color: var(--blue); }
+    .status.success { background: #e8f6f1; color: var(--green); }
+    .status.error { background: #fff0f1; color: var(--red); }
+    .empty { display: grid; min-height: 320px; place-items: center; text-align: center; color: var(--muted); border: 1px dashed #cbd5e1; border-radius: 14px; padding: 28px; }
+    .empty strong { display: block; color: #344054; margin-bottom: 6px; }
+    .hidden { display: none !important; }
+    .result-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .datum { padding: 13px 14px; border: 1px solid #e1e7ef; border-radius: 12px; background: #fbfcfe; min-width: 0; }
+    .datum.wide { grid-column: 1 / -1; }
+    .datum-label { color: var(--muted); font-size: 12px; margin-bottom: 5px; }
+    .datum-value { font-size: 15px; font-weight: 700; overflow-wrap: anywhere; }
+    .list { margin: 7px 0 0; padding-left: 20px; line-height: 1.65; font-weight: 500; }
+    .risk-box { margin-top: 14px; padding: 15px; border-left: 4px solid var(--amber); border-radius: 10px; background: #fff9eb; }
+    .risk-box strong { display: block; margin-bottom: 5px; }
+    .source { display: flex; align-items: center; gap: 10px; margin-top: 14px; padding: 13px 14px; border-radius: 11px; background: var(--blue-soft); color: #163f91; }
+    .source-code { font-family: ui-monospace, "Cascadia Code", monospace; font-size: 12px; font-weight: 800; }
+    .review { margin-top: 14px; padding: 13px 14px; border: 1px solid #f1cf91; border-radius: 11px; color: #714713; background: #fffbf2; font-weight: 750; }
+    .error-box { padding: 16px; border: 1px solid #f1b9be; border-radius: 12px; background: #fff5f5; color: #7d2730; line-height: 1.6; }
+    .request-row { display: flex; gap: 8px; align-items: center; margin-top: 12px; color: #667085; font-size: 12px; overflow-wrap: anywhere; }
+    .copy { border: 1px solid #cbd5e1; background: white; border-radius: 7px; padding: 4px 7px; cursor: pointer; color: #344054; }
+    .footer { max-width: 1180px; margin: -22px auto 36px; padding: 0 24px; color: var(--muted); font-size: 12px; text-align: center; }
+    @media (max-width: 820px) {
+      .topbar-inner { align-items: start; flex-direction: column; }
+      .layout { grid-template-columns: 1fr; margin-top: 18px; }
+      .state { min-height: auto; }
+    }
+    @media (max-width: 520px) {
+      .topbar-inner, .layout { padding-left: 16px; padding-right: 16px; }
+      .panel { padding: 18px; }
+      .result-grid { grid-template-columns: 1fr; }
+      .datum.wide { grid-column: auto; }
+      .actions { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div>
+        <h1 class="brand">ServicePilot</h1>
+        <p class="subtitle">客服工单智能分析与人工复核</p>
+      </div>
+      <span class="version">V0.3 Demo</span>
+    </div>
+  </header>
+  <div class="notice"><p>本系统仅供模拟演示，不处理真实客户数据。所有分析结果均需人工确认。</p></div>
+
+  <main class="layout">
+    <section class="card panel" aria-labelledby="input-title">
+      <p class="eyebrow">Analyze ticket</p>
+      <h2 id="input-title">模拟工单输入</h2>
+      <p class="helper">请输入不含个人信息的安全模拟内容。页面不会在浏览器中持久化工单原文。</p>
+
+      <div class="field">
+        <label for="message">工单内容</label>
+        <textarea id="message" maxlength="3000" placeholder="例如：订单 ORD-1008 的设备无法启动，请协助检查。"></textarea>
+        <div class="examples" aria-label="安全模拟示例">
+          <button class="example" type="button" data-example="订单 ORD-1008 的设备无法启动，请协助检查。">设备故障</button>
+          <button class="example" type="button" data-example="设备运行异常，暂时没有可核验的订单号。">缺少订单</button>
+          <button class="example" type="button" data-example="订单 ORD-1001 的设备出现漏电现象，请立即人工处理。">安全风险</button>
+          <button class="example" type="button" data-example="订单 ORD-1008 的设备故障影响生产，请尽快处理。">业务加急</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="mode">服务端分析模式</label>
+        <select id="mode" aria-describedby="mode-note" disabled>
+          <option value="rules" selected>规则分析（离线默认）</option>
+          <option value="llm">LLM 分析（当前未授权）</option>
+        </select>
+        <p class="mode-note" id="mode-note">正在核对服务端模式。真实 DeepSeek 调用状态为 NOT_AUTHORIZED。</p>
+      </div>
+
+      <div class="actions">
+        <button class="button primary" id="analyze" type="button" disabled>开始分析</button>
+        <button class="button secondary" id="clear" type="button">清空输入</button>
+      </div>
+    </section>
+
+    <section class="card panel state" aria-labelledby="result-title" aria-live="polite">
+      <div class="state-head">
+        <div>
+          <p class="eyebrow">Analysis result</p>
+          <h2 id="result-title">分析结果</h2>
+        </div>
+        <span class="status" id="status">未开始分析</span>
+      </div>
+
+      <div class="empty" id="empty-state">
+        <div><strong>等待模拟工单</strong>提交后将在这里展示结构化分析、风险提示与分析来源。</div>
+      </div>
+      <div class="hidden" id="result-content">
+        <div class="result-grid" id="result-grid"></div>
+        <div class="risk-box" id="risk-box"><strong id="risk-title"></strong><span id="risk-detail"></span></div>
+        <div class="source"><span class="source-code" id="source-code"></span><span id="source-label"></span></div>
+        <p class="mode-note">来源标签严格取自本次 API 结果；它不表示页面已验证真实模型调用。</p>
+        <div class="review" id="review-state"></div>
+      </div>
+      <div class="error-box hidden" id="error-box">
+        <strong id="error-title"></strong>
+        <div id="error-message"></div>
+        <div class="request-row hidden" id="request-row">Request ID: <span id="request-id"></span><button class="copy" id="copy-id" type="button">复制</button></div>
+      </div>
+    </section>
+  </main>
+
+  <p class="footer">教学与工程演示原型 · 不提供自动审批、退款、赔偿、保修批准或自动派遣</p>
+
+  <script>
+    const sourceLabels = Object.freeze({
+      rules: "规则分析",
+      llm: "LLM 分析",
+      llm_fallback_rules: "LLM 失败后规则降级"
+    });
+    const errorLabels = Object.freeze({
+      422: ["输入校验错误", "请检查模拟工单内容，长度应为 4 至 3000 个字符。"],
+      500: ["服务处理失败", "服务暂时无法完成分析，请稍后重试。"],
+      502: ["上游服务失败", "模型服务调用或输出校验失败，未生成可用分析。"],
+      503: ["LLM 未配置", "当前环境未配置或未授权模型调用，请使用规则模式。"],
+      504: ["请求超时", "模型服务响应超时，请稍后重试或使用规则模式。"]
+    });
+
+    const byId = (id) => document.getElementById(id);
+    const message = byId("message");
+    const modeSelect = byId("mode");
+    const modeNote = byId("mode-note");
+    const analyzeButton = byId("analyze");
+    const clearButton = byId("clear");
+    const statusBadge = byId("status");
+    let backendMode = null;
+    let llmWebAuthorized = false;
+
+    function setText(node, value, fallback = "—") {
+      node.textContent = value === null || value === undefined || value === "" ? fallback : String(value);
+    }
+
+    function setStatus(label, kind) {
+      statusBadge.textContent = label;
+      statusBadge.className = `status ${kind || ""}`.trim();
+    }
+
+    function resetOutput() {
+      byId("result-grid").replaceChildren();
+      byId("result-content").classList.add("hidden");
+      byId("error-box").classList.add("hidden");
+      byId("request-row").classList.add("hidden");
+      byId("empty-state").classList.remove("hidden");
+    }
+
+    function addDatum(label, value, wide = false) {
+      const item = document.createElement("div");
+      item.className = wide ? "datum wide" : "datum";
+      const key = document.createElement("div");
+      key.className = "datum-label";
+      key.textContent = label;
+      const content = document.createElement("div");
+      content.className = "datum-value";
+      if (Array.isArray(value)) {
+        const list = document.createElement("ul");
+        list.className = "list";
+        const values = value.length ? value : ["无"];
+        values.forEach((entry) => {
+          const row = document.createElement("li");
+          row.textContent = String(entry);
+          list.appendChild(row);
+        });
+        content.appendChild(list);
+      } else {
+        setText(content, value);
+      }
+      item.append(key, content);
+      byId("result-grid").appendChild(item);
+    }
+
+    function riskSummary(data) {
+      if (Array.isArray(data.missing_information) && data.missing_information.length) {
+        return ["缺失订单或关键信息", "请先补充页面列出的缺失信息，再由人工复核。"];
+      }
+      if (data.priority === "紧急待人工复核") {
+        return ["潜在安全风险", "结构化优先级为紧急，必须立即转人工；具体依据以分析原因为准。"];
+      }
+      if (data.priority === "优先待人工复核") {
+        return ["业务加急", "结构化优先级为优先，请人工核实业务影响和处理顺序。"];
+      }
+      return ["普通人工复核", "未识别到结构化紧急等级，分析结果仍须人工确认。"];
+    }
+
+    function renderResult(data) {
+      byId("empty-state").classList.add("hidden");
+      byId("error-box").classList.add("hidden");
+      byId("result-content").classList.remove("hidden");
+      byId("result-grid").replaceChildren();
+
+      addDatum("工单类别", data.category);
+      addDatum("优先级", data.priority);
+      addDatum("工单摘要", data.summary, true);
+      addDatum("订单号", data.order_id || "未提供");
+      addDatum("订单核验", data.order_found ? "已在模拟订单库核验" : "未核验");
+      addDatum("保修状态", data.warranty_status);
+      addDatum("负责部门", data.department);
+      addDatum("缺失信息", data.missing_information, true);
+      addDatum("分析原因", data.reasons, true);
+
+      const risk = riskSummary(data);
+      setText(byId("risk-title"), risk[0]);
+      setText(byId("risk-detail"), risk[1]);
+      setText(byId("source-code"), data.source);
+      setText(byId("source-label"), sourceLabels[data.source], "未知来源（需人工核查）");
+      setText(byId("review-state"), data.needs_human_review ? "需要人工复核" : "API 未要求复核；演示流程仍需人工确认");
+      setStatus("分析成功", "success");
+    }
+
+    function safeError(status) {
+      if (errorLabels[status]) return errorLabels[status];
+      if (status >= 400) return ["分析请求失败", "请求未成功，请稍后重试。"];
+      return ["未知错误", "暂时无法完成分析，请稍后重试。"];
+    }
+
+    function renderError(title, text, requestId) {
+      byId("empty-state").classList.add("hidden");
+      byId("result-content").classList.add("hidden");
+      byId("error-box").classList.remove("hidden");
+      setText(byId("error-title"), title);
+      setText(byId("error-message"), text);
+      if (requestId) {
+        setText(byId("request-id"), requestId);
+        byId("request-row").classList.remove("hidden");
+      } else {
+        byId("request-row").classList.add("hidden");
+      }
+      setStatus(title, "error");
+    }
+
+    function canAnalyze() {
+      return backendMode === "rules" || (backendMode === "llm" && llmWebAuthorized);
+    }
+
+    async function syncBackendMode() {
+      const previousMode = backendMode;
+      const previousAuthorization = llmWebAuthorized;
+      backendMode = null;
+      llmWebAuthorized = false;
+      analyzeButton.disabled = true;
+      try {
+        const response = await fetch("/health", {headers: {"Accept": "application/json"}, cache: "no-store"});
+        const requestId = response.headers.get("X-Request-ID") || "";
+        let health;
+        try {
+          health = await response.json();
+        } catch (_error) {
+          renderError("模式状态不可用", "服务端模式响应无法安全解析，分析已禁用。", requestId);
+          return;
+        }
+        if (!response.ok || !health || !["rules", "llm"].includes(health.mode)) {
+          renderError("模式状态不可用", "无法确认安全的服务端分析模式，分析已禁用。", requestId);
+          return;
+        }
+
+        backendMode = health.mode;
+        llmWebAuthorized = health.real_llm_web_authorized === true;
+        modeSelect.value = backendMode;
+        if (
+          previousMode &&
+          (previousMode !== backendMode || previousAuthorization !== llmWebAuthorized)
+        ) {
+          resetOutput();
+          setStatus("模式已变化", "");
+        }
+        if (backendMode === "rules") {
+          modeNote.textContent = "服务端当前为规则模式。真实 DeepSeek 调用状态为 NOT_AUTHORIZED。";
+          analyzeButton.disabled = false;
+          return;
+        }
+
+        if (llmWebAuthorized) {
+          modeNote.textContent = "服务端当前为 LLM 模式，本地 Web 测试已由操作人员显式授权。所有结果仍需人工确认。";
+          analyzeButton.disabled = false;
+          return;
+        }
+
+        modeNote.textContent = "服务端当前配置为 LLM，但真实调用未获授权；分析按钮已禁用。请由人工将服务重启为 SP_MODE=rules。";
+        resetOutput();
+        renderError("LLM 模式未授权", "为避免真实模型调用，本页面已禁止分析。请切换服务端至规则模式后刷新。", requestId);
+      } catch (_error) {
+        renderError("网络错误", "无法确认服务端分析模式，分析已禁用。", "");
+      }
+    }
+
+    async function analyzeTicket() {
+      const value = message.value.trim();
+      resetOutput();
+      if (!canAnalyze()) {
+        renderError("分析模式不可用", "当前模式未获得本地 Web 分析授权，未发送分析请求。", "");
+        return;
+      }
+      if (!value) {
+        renderError("输入校验错误", "请填写安全的模拟工单内容。", "");
+        return;
+      }
+
+      analyzeButton.disabled = true;
+      clearButton.disabled = true;
+      setStatus("分析中", "loading");
+      byId("empty-state").classList.remove("hidden");
+      byId("empty-state").firstElementChild.textContent = backendMode === "llm"
+        ? "正在执行已授权的本地 LLM 测试，请稍候…"
+        : "正在执行规则分析，请稍候…";
+
+      try {
+        const response = await fetch("/analyze", {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({message: value})
+        });
+        const requestId = response.headers.get("X-Request-ID") || "";
+        let payload;
+        try {
+          payload = await response.json();
+        } catch (_error) {
+          renderError("响应格式错误", "服务返回了无法安全解析的响应。", requestId);
+          return;
+        }
+        if (!response.ok) {
+          const mapped = safeError(response.status);
+          renderError(mapped[0], mapped[1], requestId);
+          return;
+        }
+        renderResult(payload);
+      } catch (_error) {
+        renderError("网络错误", "无法连接到本地 ServicePilot 服务，请检查服务状态后重试。", "");
+      } finally {
+        analyzeButton.disabled = !canAnalyze();
+        clearButton.disabled = false;
+      }
+    }
+
+    analyzeButton.addEventListener("click", analyzeTicket);
+    clearButton.addEventListener("click", () => {
+      message.value = "";
+      resetOutput();
+      byId("empty-state").firstElementChild.textContent = "提交后将在这里展示结构化分析、风险提示与分析来源。";
+      setStatus("未开始分析", "");
+      message.focus();
+    });
+    document.querySelectorAll("[data-example]").forEach((button) => {
+      button.addEventListener("click", () => {
+        message.value = button.dataset.example;
+        message.focus();
+      });
+    });
+    byId("copy-id").addEventListener("click", async () => {
+      const value = byId("request-id").textContent;
+      if (value && navigator.clipboard) await navigator.clipboard.writeText(value);
+    });
+    syncBackendMode();
+  </script>
+</body>
+</html>
